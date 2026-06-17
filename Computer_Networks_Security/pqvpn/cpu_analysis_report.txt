@@ -1,0 +1,87 @@
+══════════════════════════════════════════════════════════════════════
+  POST-QUANTUM VPN — DETAYLI CPU YÜK ANALİZİ
+  Tarih: 2026-06-17 18:11:08
+  Platform: Linux — Python 3.14.4
+══════════════════════════════════════════════════════════════════════
+
+  [1] HANDSHAKE ALGORİTMASI CPU MALİYETİ
+──────────────────────────────────────────────────────────────────────
+  Algoritma                       Ort(ms)  Min(ms)  Maks(ms)     N
+──────────────────────────────────────────────────────────────────────
+  Kyber512 keygen                    1.30     1.07      4.07   200
+                                 [░░░░░░░░░░░░░░░░░░░░]
+  Kyber512 tam handshake             5.18     4.82      6.62   100
+                                 [██░░░░░░░░░░░░░░░░░░]
+  RSA-2048 keygen                   35.02     8.54    102.11    50
+                                 [███████████████████░]
+  RSA-2048 tam handshake            36.19    10.94     80.58    30
+                                 [████████████████████]
+──────────────────────────────────────────────────────────────────────
+  ► Kyber512, RSA-2048'den 7.0x DAHA HIZLI handshake yapıyor!
+  ► RSA-2048: 36.19ms  |  Kyber512: 5.18ms
+  ► Kuantum güvenliğini DAHA AZ CPU ile sağlıyor!
+
+
+  [2] AES-256-GCM ŞİFRELEME CPU MALİYETİ (Her İki VPN İçin Aynı!)
+──────────────────────────────────────────────────────────────────────
+  Paket Boyutu         Süre(ms)   Throughput   Overhead
+──────────────────────────────────────────────────────────────────────
+     64 byte               0.0010       64.0 MB/s       28 byte
+    256 byte               0.0010      256.0 MB/s       28 byte
+    512 byte               0.0010      512.0 MB/s       28 byte
+   1024 byte               0.0010     1024.0 MB/s       28 byte
+   1500 byte               0.0010     1500.0 MB/s       28 byte
+──────────────────────────────────────────────────────────────────────
+  ► Her iki VPN de AES-256-GCM kullandığından veri şifreleme CPU'su EŞİT!
+  ► Fark sadece el sıkışma aşamasında!
+
+
+  [3] CANLI CPU YÜK GRAFİĞİ (İperf3 Sırasında)
+──────────────────────────────────────────────────────────────────────
+
+  PQ-VPN (Kyber512+AES) (her nokta = 0.5s)
+   100% |
+    80% |                                                             
+    60% |                                                             
+    40% |                                                             
+    20% |                                                             
+     0% |█████████████████████████████████████████████████████████████
+        +────────────────────────────────────────────────────────────
+         Zaman →
+  Ort: 0.0%  Maks: 4.7%  Min: 0.0%
+
+  Klasik VPN (RSA+AES) (her nokta = 0.5s)
+   100% |
+    80% |                                                                       
+    60% |                                                                       
+    40% |                                                                       
+    20% |                                                                       
+     0% |███████████████████████████████████████████████████████████████████████
+        +────────────────────────────────────────────────────────────
+         Zaman →
+  Ort: 0.5%  Maks: 3.3%  Min: 0.0%
+
+  ► CPU farkı (PQ-VPN - Klasik): -0.5%
+
+
+  [4] HOCAya VERILECEK ÖZET CEVAPLAR
+──────────────────────────────────────────────────────────────────────
+  S: CPU yükü neden önemli?
+  C: VPN'in sistemde ne kadar kaynak tükettiğini gösterir.
+     Yüksek CPU = ağır şifreleme = potansiyel gecikme/darboğaz.
+
+  S: PQ-VPN neden daha fazla CPU kullanabilir?
+  C: Kyber512 anahtarları RSA'dan büyük (800B vs 294B public key).
+     Ancak şaşırtıcı şekilde HANDSHAKE daha hızlı, çünkü
+     MLWE matematiksel olarak RSA'dan daha verimli hesaplanır.
+
+  S: Veri transferi sırasında CPU farkı var mı?
+  C: HAYIR. Her ikisi de AES-256-GCM kullandığından
+     paket şifreleme CPU maliyeti TAMAMEN EŞİT.
+     Ölçümlerdeki küçük farklar ağ/OS gürültüsünden kaynaklanır.
+
+  S: Paket başına overhead neden tam 28 byte?
+  C: 12 byte (AES-GCM IV/Nonce, replay koruması için)
+     + 16 byte (GCM Authentication Tag, bütünlük doğrulama)
+     = 28 byte sabit matematiksel zorunluluk.
+══════════════════════════════════════════════════════════════════════

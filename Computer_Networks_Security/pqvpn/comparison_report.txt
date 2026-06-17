@@ -1,0 +1,66 @@
+══════════════════════════════════════════════════════════════════════
+  PQ-VPN vs KLASİK VPN — KARŞILAŞTIRMA RAPORU
+  Tarih: 2026-06-17 17:40:57
+══════════════════════════════════════════════════════════════════════
+
+  [1] EL SIKIŞMA (HANDSHAKE) ALGORİTMASI FARKI
+──────────────────────────────────────────────────────────────────────
+  Özellik                             Klasik (RSA-2048) PQ-VPN (Kyber512)
+──────────────────────────────────────────────────────────────────────
+  Algoritma türü                          Klasik (RSA)      Post-Kuantum
+  Matematiksel problem                   Büyük asal ×         Module LWE
+  Kuantum saldırısına dayanıklı                ❌ HAYIR            ✅ EVET
+  Public Key boyutu                           294 byte          800 byte
+  Private Key boyutu                         1218 byte         1632 byte
+  Ciphertext/şifreli veri                     256 byte          768 byte
+  Tahmini keygen süresi                     ~50-200 ms           ~1-3 ms
+  Tahmini encrypt/encaps                       ~1-5 ms           ~1-3 ms
+──────────────────────────────────────────────────────────────────────
+  ► Shor algoritması RSA-2048'i kırar → Klasik VPN SAVUNMASIZ!
+  ► Kyber512, MLWE problemine dayanır → Kuantum dirençli!
+
+
+  [2] CPU YÜK KARŞILAŞTIRMASI (Veri Transfer Sırasında)
+──────────────────────────────────────────────────────────────────────
+
+  PQ-VPN  (Kyber512) — Ort:   0.3%  Maks:   3.8%  Min:   0.0%
+  [██░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0.3%
+
+  Klasik  (RSA-2048) — Ort:   0.5%  Maks:   3.3%  Min:   0.0%
+  [███░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0.5%
+
+  ► PQ-VPN'in ek CPU maliyeti: -0.2%
+  ► PQ-VPN, Klasik VPN'e göre DAHA AZ CPU kullandı!
+  ► AES-GCM veri şifrelemesi her iki tarafta da aynı!
+
+
+  [3] PAKET OVERHEAD — İKİ VPN DE AYNI
+──────────────────────────────────────────────────────────────────────
+  Her iki VPN de AES-256-GCM kullandığından overhead EŞİT:
+  12 byte (Nonce) + 16 byte (GCM Tag) = 28 byte / paket
+
+  Örnek: 84 byte ICMP ping → 112 byte şifreli payload
+  Fark: Sadece EL SIKIŞMA algoritması!
+
+
+  [4] GÜVENLİK DEĞERLENDİRMESİ
+──────────────────────────────────────────────────────────────────────
+  Tehdit                                       Klasik     PQ-VPN
+──────────────────────────────────────────────────────────────────────
+  Klasik bilgisayar brute-force             ✅ Güvenli  ✅ Güvenli
+  Shor algoritması (kuantum)               ❌ KIRGILIR  ✅ Güvenli
+  Grover algoritması (kuantum)             ⚠️  Zayıflar  ✅ Güvenli
+  Man-in-the-Middle (şifreli)               ✅ Güvenli  ✅ Güvenli
+  Harvest-Now-Decrypt-Later saldırısı      ❌ Tehlikeli  ✅ Güvenli
+
+
+  [5] SONUÇ
+──────────────────────────────────────────────────────────────────────
+  Her iki VPN de AES-256-GCM ile AYNI güçte veri şifrelemesi yapar.
+  TEMEL FARK: Oturum anahtarının nasıl değiş tokuş edildiğidir.
+
+  RSA-2048  → Kuantum bilgisayarlar bu anahtarı kırar (Shor, 2048-qubit)
+  Kyber512  → MLWE problemi kuantum için de zordur → geleceğe hazır!
+
+  Sonuç: Az CPU maliyetiyle maksimum uzun vadeli güvenlik = Kyber512
+══════════════════════════════════════════════════════════════════════

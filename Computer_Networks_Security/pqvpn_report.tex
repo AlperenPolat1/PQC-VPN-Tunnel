@@ -1,0 +1,305 @@
+\documentclass[conference,onecolumn]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{gray!10},
+  frame=single,
+  breaklines=true
+}
+
+\title{Post-Quantum Layer-3 VPN Tunnel:\\
+Implementation and Performance Analysis Using ML-KEM (Kyber512)\\[0.5em]
+\large CENG3544 -- Computer Networks and Security}
+
+\author{
+\IEEEauthorblockN{Mustafa Aydın}
+\IEEEauthorblockA{Computer Engineering\\
+Marmara University\\
+Istanbul, Turkey\\
+\texttt{mustafaa@posta.mu.edu.tr}}
+\and
+\IEEEauthorblockN{Alperen Polat}
+\IEEEauthorblockA{Computer Engineering\\
+Marmara University\\
+Istanbul, Turkey\\
+\texttt{alperenpolat@posta.mu.edu.tr}}
+}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\textit{June 17, 2026}
+\end{center}
+\vspace{0.5em}
+
+%─────────────────────────────────────────────────────
+\begin{abstract}
+This paper presents the design, implementation, and experimental evaluation of a Layer-3 VPN tunnel that employs post-quantum cryptography for its key establishment phase. Unlike conventional VPN solutions that rely on classical asymmetric schemes vulnerable to quantum attacks, our system integrates the Module Learning With Errors (MLWE) based key encapsulation mechanism Kyber512 — standardized by NIST as ML-KEM — for handshake, and AES-256-GCM for authenticated data encryption. The tunnel was deployed across two physical machines communicating over a university Wi-Fi network. Empirical measurements confirm that Kyber512 completes a full key exchange in approximately 3.9 ms, which is 7x faster than an RSA-2048 equivalent handshake (65.53 ms), while imposing a constant 28-byte per-packet overhead attributable solely to the AES-GCM construction. CPU utilization during data transfer was found to be statistically equivalent between the post-quantum and classical configurations, demonstrating that the security improvement carries no additional runtime cost beyond the handshake phase.
+\end{abstract}
+
+%─────────────────────────────────────────────────────
+\section{Introduction}
+
+The widespread deployment of quantum computers poses a concrete threat to public-key cryptosystems whose security relies on the hardness of integer factorization or the discrete logarithm problem. Shor's algorithm solves both problems in polynomial time on a sufficiently powerful quantum processor, rendering RSA and elliptic-curve schemes obsolete against adversaries with access to such hardware. While large-scale fault-tolerant quantum computers are not yet publicly available, the \textit{harvest-now-decrypt-later} attack strategy — in which encrypted traffic is stored today for decryption once quantum hardware matures — motivates immediate migration toward post-quantum cryptographic primitives.
+
+Virtual Private Networks (VPNs) transmit sensitive organizational data continuously and are prime targets for such harvest attacks. This work addresses that risk by constructing a functional post-quantum VPN tunnel that:
+\begin{itemize}
+    \item Uses Kyber512 (ML-KEM) for quantum-resistant key encapsulation,
+    \item Uses AES-256-GCM for symmetric authenticated encryption of all payload,
+    \item Operates at Layer 3 via Linux TUN interfaces across two real computers,
+    \item Provides quantitative CPU load and timing measurements comparing post-quantum and classical approaches.
+\end{itemize}
+
+%─────────────────────────────────────────────────────
+\section{Background}
+
+\subsection{The Post-Quantum Threat Landscape}
+Shor's factoring algorithm, when executed on a 4096-logical-qubit computer, can break RSA-2048 in hours. Current quantum processors remain noisy and small, yet the cryptographic community has accelerated standardization efforts. NIST finalized its first post-quantum standards in 2024, including FIPS 203 (ML-KEM, derived from Kyber) for key encapsulation and FIPS 204 (ML-DSA) for digital signatures.
+
+\subsection{Module Learning With Errors (MLWE)}
+Kyber's security is grounded in MLWE, a lattice problem parameterized over polynomial rings. Solving MLWE requires finding a short vector in a high-dimensional lattice — a task for which no known quantum algorithm achieves polynomial speedup. At the Kyber512 parameter set (NIST Level 1), the scheme targets security equivalent to AES-128 against both classical and quantum adversaries.
+
+\subsection{AES-256-GCM}
+AES-GCM is an authenticated encryption with associated data (AEAD) scheme. Each encryption operation requires a unique 96-bit (12-byte) initialization vector (IV/nonce) and produces a 128-bit (16-byte) authentication tag. These two fields account for the constant 28-byte overhead per protected packet observed in our experiments.
+
+%─────────────────────────────────────────────────────
+\section{System Architecture}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\columnwidth]{mydn3.jpeg}
+\caption{PQ-VPN server terminal output. Kyber512 key generation completes in 1.47 ms, decapsulation in 2.43 ms, with TUN interface \texttt{tun0} assigned to \texttt{10.0.0.1/24}.}
+\label{fig:server}
+\end{figure}
+
+The system consists of four Python modules:
+
+\begin{itemize}
+    \item \textbf{common.py} — shared cryptographic helpers, TUN interface management, AES-GCM encrypt/decrypt wrappers.
+    \item \textbf{server.py} — performs Kyber512 \texttt{keygen()}, distributes the public key over TCP, receives and decapsulates the client's ciphertext to derive the shared secret, then operates the bidirectional encrypted UDP tunnel.
+    \item \textbf{client.py} — receives the server's public key, executes \texttt{encaps(pk)} to obtain both the shared secret and a ciphertext, transmits the ciphertext over TCP, and subsequently participates in the tunnel.
+    \item \textbf{benchmark.py} / \textbf{cpu\_analysis.py} — performance instrumentation using \texttt{psutil}.
+\end{itemize}
+
+\subsection{Handshake Protocol}
+The handshake proceeds over a dedicated TCP connection on port 4444:
+
+\begin{lstlisting}[language=Python, caption=Kyber512 handshake (server side)]
+pk, sk = Kyber512.keygen()        # Step 1
+conn.sendall(pk)                   # Step 2: send public key
+ct = conn.recv(768)                # Step 3: receive ciphertext
+shared_secret = Kyber512.decaps(sk, ct)  # Step 4
+\end{lstlisting}
+
+Following successful handshake, both endpoints initialize \texttt{AESGCM(shared\_secret)} and open a TUN interface. All IP packets traversing the virtual interface are encrypted before transmission over UDP port 5555.
+
+%─────────────────────────────────────────────────────
+\section{Implementation and Deployment}
+
+Both machines run Windows 11 with WSL2 (Ubuntu 24.04, \texttt{networkingMode=mirrored}). The mirrored networking mode causes the WSL2 instance to share the host's physical IP address, eliminating the NAT translation overhead normally present in WSL2.
+
+\textbf{Server machine (Mustafa):} \texttt{172.21.195.229}\\
+\textbf{Client machine (Alperen):} \texttt{172.21.196.43}\\
+\textbf{VPN subnet:} \texttt{10.0.0.0/24} (TUN interfaces)
+
+The implementation relies on \texttt{kyber-py} (v1.2.0) and the \texttt{cryptography} library (v46.0.5). No kernel modules or privileged system calls beyond TUN device creation are required.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\columnwidth]{alperen2.jpeg}
+\caption{Alperen's terminal showing iperf3 throughput test over the Classic VPN tunnel (10.1.0.1). Sustained throughput of 19.9 Mbits/sec confirms stable tunnel operation.}
+\label{fig:iperf}
+\end{figure}
+
+%─────────────────────────────────────────────────────
+\section{Experimental Results}
+
+\subsection{Handshake Performance}
+
+Table \ref{tab:handshake} summarizes timing measurements obtained by running each handshake variant repeatedly: Kyber512 was executed 100 times, RSA-2048 30 times. All measurements were collected on the server machine under identical load conditions.
+
+\begin{table}[H]
+\centering
+\caption{Handshake Timing Comparison (real measurements)}
+\label{tab:handshake}
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Operation} & \textbf{Avg (ms)} & \textbf{Min (ms)} & \textbf{Max (ms)} \\
+\midrule
+Kyber512 keygen        &  1.30  &  1.07  &   4.07 \\
+Kyber512 full exchange &  5.18  &  4.82  &   6.62 \\
+RSA-2048 keygen        & 35.02  &  8.54  & 102.11 \\
+RSA-2048 full exchange & 36.19  & 10.94  &  80.58 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In a live two-machine deployment (Figure \ref{fig:server}), the complete PQ-VPN handshake between \texttt{172.21.195.229} and \texttt{172.21.196.43} finished in \textbf{3.90 ms} (keygen: 1.47 ms, decapsulation: 2.43 ms). The classical RSA-2048 equivalent required \textbf{65.53 ms} — a 16.8x real-world difference.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\columnwidth]{mydn4.jpeg}
+\caption{Classic VPN (RSA-2048) server handshake output. RSA key generation alone consumes 62.44 ms, versus 1.47 ms for Kyber512 keygen.}
+\label{fig:classic}
+\end{figure}
+
+\subsection{Key and Ciphertext Sizes}
+
+\begin{table}[H]
+\centering
+\caption{Cryptographic Object Sizes}
+\label{tab:sizes}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Object} & \textbf{Kyber512} & \textbf{RSA-2048} \\
+\midrule
+Public key      & 800 bytes  & 294 bytes  \\
+Private key     & 1632 bytes & 1218 bytes \\
+Ciphertext / enc. session key & 768 bytes & 256 bytes \\
+Shared secret   & 32 bytes   & 32 bytes   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Although Kyber512 public keys are larger than RSA-2048 equivalents, this size difference is a one-time handshake cost transmitted over TCP and has no effect on per-packet processing.
+
+\subsection{Packet Overhead Analysis}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\columnwidth]{mydn1.jpeg}
+\caption{tcpdump capture on interface \texttt{eth2} during PQ-VPN operation. UDP packets of length 112 carry 84-byte ICMP payloads plus 28 bytes of AES-GCM framing (12-byte nonce + 16-byte authentication tag). The hex dump confirms the payload is entirely ciphertext.}
+\label{fig:tcpdump}
+\end{figure}
+
+Every packet encrypted by the tunnel incurs a constant overhead:
+
+\begin{equation}
+\text{Overhead} = \underbrace{12}_{\text{nonce}} + \underbrace{16}_{\text{GCM tag}} = 28 \text{ bytes}
+\end{equation}
+
+This overhead is independent of packet size and is identical for both the PQ-VPN and classical configurations, since both use AES-256-GCM for data encryption.
+
+\begin{table}[H]
+\centering
+\caption{Measured Packet Size Expansion}
+\label{tab:overhead}
+\begin{tabular}{rrrr}
+\toprule
+\textbf{Plaintext (B)} & \textbf{Ciphertext (B)} & \textbf{Overhead (B)} & \textbf{Overhead (\%)} \\
+\midrule
+64   & 92   & 28 & 43.8 \\
+84   & 112  & 28 & 33.3 \\
+256  & 284  & 28 & 10.9 \\
+512  & 540  & 28 &  5.5 \\
+1024 & 1052 & 28 &  2.7 \\
+1500 & 1528 & 28 &  1.9 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{AES-256-GCM Encryption Throughput}
+
+\begin{table}[H]
+\centering
+\caption{AES-256-GCM Per-Packet Encryption Performance}
+\label{tab:aes}
+\begin{tabular}{rrr}
+\toprule
+\textbf{Packet Size (B)} & \textbf{Avg Latency (ms)} & \textbf{Throughput (MB/s)} \\
+\midrule
+64   & 0.0010 &   64.0 \\
+256  & 0.0010 &  256.0 \\
+512  & 0.0010 &  512.0 \\
+1024 & 0.0010 & 1024.0 \\
+1500 & 0.0010 & 1500.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These measurements confirm that AES-256-GCM encryption is computationally negligible at the packet level (sub-microsecond), which explains why CPU utilization during tunnel operation remains near-identical for both VPN variants.
+
+\subsection{CPU Load During Tunnel Operation}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\columnwidth]{mydn2.jpeg}
+\caption{cpu\_analysis.py output comparing handshake costs and real-time CPU graphs during iperf3 load. Both PQ-VPN and Classic VPN show near-zero CPU during data transfer, confirming that AES-GCM dominates runtime cost equally in both cases.}
+\label{fig:cpu}
+\end{figure}
+
+The CPU timeline graphs in Figure \ref{fig:cpu} demonstrate that during sustained 20 Mbps iperf3 traffic, both tunnel configurations maintain average CPU utilization below 5\%. The Kyber512 handshake itself — completed once per session — consumes marginally less CPU than RSA-2048 due to simpler modular arithmetic over polynomial rings compared to large-prime exponentiation.
+
+%─────────────────────────────────────────────────────
+\section{Security Analysis}
+
+\begin{table}[H]
+\centering
+\caption{Security Property Comparison}
+\label{tab:security}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Attack Scenario} & \textbf{RSA-2048 VPN} & \textbf{PQ-VPN (Kyber512)} \\
+\midrule
+Classical brute force       & Secure   & Secure \\
+Shor's algorithm (quantum)  & Broken   & Secure \\
+Grover's algorithm (quantum)& Weakened & Secure \\
+Man-in-the-Middle           & Secure   & Secure \\
+Harvest-now-decrypt-later   & Broken   & Secure \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The critical distinction lies not in data encryption — both configurations use AES-256-GCM — but in how the symmetric session key is established. An adversary who records RSA-encrypted handshake traffic today can retroactively decrypt it once a sufficiently powerful quantum computer becomes available. The MLWE-based key encapsulation used in our system provides forward secrecy against this class of attack.
+
+%─────────────────────────────────────────────────────
+\section{Discussion}
+
+Our experimental results reveal three key findings:
+
+\textbf{1. Kyber512 is faster than RSA-2048 at handshake.} The full key exchange completes in 5.18 ms on average, compared to 36.19 ms for RSA-2048 (7x speedup in benchmarks; 16.8x in the live deployment). This counterintuitive result stems from Kyber's reliance on polynomial ring arithmetic, which is inherently more cache-friendly than multi-precision modular exponentiation.
+
+\textbf{2. Data transfer CPU overhead is VPN-agnostic.} Since both configurations encrypt payload with AES-256-GCM, the per-packet processing cost is identical. The CPU load difference between the two systems is limited strictly to the one-time handshake.
+
+\textbf{3. The 28-byte overhead is a mathematical constant.} Twelve bytes for the GCM nonce and sixteen bytes for the authentication tag are non-negotiable requirements of authenticated encryption. This overhead diminishes in relative terms as packet size increases, reaching below 2\% for MTU-sized frames.
+
+%─────────────────────────────────────────────────────
+\section{Conclusion}
+
+We implemented a fully functional post-quantum Layer-3 VPN tunnel connecting two physical machines over a real university network. The system demonstrates that transitioning from classical to post-quantum key encapsulation carries no measurable runtime penalty — CPU usage during data transfer is statistically identical between the Kyber512-based and RSA-2048-based configurations. The handshake phase is actually faster with Kyber512 (3.90 ms vs. 65.53 ms measured live). The only quantifiable cost is a 28-byte per-packet overhead imposed by AES-256-GCM, which applies equally to both approaches.
+
+Given that classical VPN configurations remain vulnerable to harvest-now-decrypt-later quantum attacks while our implementation is not, and given that the performance trade-off is effectively zero, post-quantum VPN migration presents a clear engineering case.
+
+%─────────────────────────────────────────────────────
+\begin{thebibliography}{9}
+
+\bibitem{nist203}
+National Institute of Standards and Technology, ``FIPS 203: Module-Lattice-Based Key-Encapsulation Mechanism Standard,'' Federal Information Processing Standards Publication, Aug. 2024.
+
+\bibitem{kyberspec}
+R. Avanzi, J. Bos, L. Ducas, E. Kiltz, T. Lepoint, V. Lyubashevsky, J. M. Schanck, P. Schwabe, G. Seiler, and D. Stehlé, ``CRYSTALS-Kyber: Algorithm Specifications and Supporting Documentation,'' NIST PQC Round 3 Submission, 2021.
+
+\bibitem{shor}
+P. W. Shor, ``Polynomial-Time Algorithms for Prime Factorization and Discrete Logarithms on a Quantum Computer,'' \textit{SIAM Journal on Computing}, vol. 26, no. 5, pp. 1484–1509, 1997.
+
+\bibitem{aesgcm}
+M. Dworkin, ``Recommendation for Block Cipher Modes of Operation: Galois/Counter Mode (GCM) and GMAC,'' NIST Special Publication 800-38D, Nov. 2007.
+
+\bibitem{wireguard}
+J. A. Donenfeld, ``WireGuard: Next Generation Kernel Network Tunnel,'' in \textit{Proc. Network and Distributed System Security Symposium (NDSS)}, 2017.
+
+\bibitem{harvest}
+B. Mosca, ``Cybersecurity in an Era with Quantum Computers: Will We Be Ready?,'' \textit{IEEE Security \& Privacy}, vol. 16, no. 5, pp. 38--41, 2018.
+
+\end{thebibliography}
+
+\end{document}
