@@ -22,8 +22,8 @@ Marmara University · Computer Engineering
 
 | Name | Email | University |
 |------|-------|------------|
-| Mustafa Aydın | mustafaa@posta.mu.edu.tr | Marmara University |
-| Alperen Polat | alperenpolat@posta.mu.edu.tr | Marmara University |
+| Mustafa Aydın | mustafaa@posta.mu.edu.tr | Mugla Sıtkı Kocman University |
+| Alperen Polat | alperenpolat@posta.mu.edu.tr | Mugla Sıtkı Kocman University |
 
 </div>
 
