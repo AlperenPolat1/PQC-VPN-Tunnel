@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PQC-VPN-Tunnel – Presentation</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/black.min.css"/>
+  <style>
+    :root {
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+    }
+
+    .reveal { font-family: 'Segoe UI', system-ui, sans-serif; }
+
+    /* ── TITLE SLIDE ── */
+    .slide-title { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+    .slide-title .badge {
+      display: inline-block;
+      background: rgba(124,58,237,0.25);
+      border: 1px solid var(--accent);
+      color: #c4b5fd;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.55em;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .slide-title h1 {
+      font-size: 1.5em !important;
+      background: linear-gradient(90deg, #a78bfa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0 0 10px;
+    }
+    .slide-title .subtitle {
+      color: #94a3b8;
+      font-size: 0.55em;
+      margin-bottom: 30px;
+    }
+    .author-row {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 20px;
+    }
+    .author-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 14px 24px;
+      text-align: center;
+    }
+    .author-card .name { font-size: 0.6em; font-weight: 700; color: #e2e8f0; }
+    .author-card .mail { font-size: 0.4em; color: #94a3b8; }
+
+    /* ── GENERAL ── */
+    .reveal h2 { color: #a78bfa; font-size: 1.1em !important; margin-bottom: 20px; }
+    .reveal section { padding: 0 20px; }
+
+    /* ── PROBLEM SLIDE ── */
+    .threat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 10px;
+    }
+    .threat-card {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.4);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: left;
+    }
+    .threat-card .icon { font-size: 1.4em; margin-bottom: 6px; }
+    .threat-card p { font-size: 0.42em; color: #fca5a5; margin: 0; line-height: 1.5; }
+    .threat-card h4 { font-size: 0.5em; color: #f87171; margin: 0 0 6px; }
+
+    /* ── SOLUTION SLIDE ── */
+    .solution-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .sol-card {
+      background: rgba(124,58,237,0.12);
+      border: 1px solid rgba(124,58,237,0.4);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: left;
+    }
+    .sol-card .icon { font-size: 1.6em; margin-bottom: 8px; }
+    .sol-card h4 { font-size: 0.5em; color: #c4b5fd; margin: 0 0 6px; }
+    .sol-card p  { font-size: 0.4em; color: #ddd6fe; margin: 0; line-height: 1.5; }
+
+    /* ── HANDSHAKE SLIDE ── */
+    .hs-flow {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      margin-top: 10px;
+    }
+    .hs-box {
+      flex: 1;
+      background: rgba(6,182,212,0.08);
+      border: 1px solid rgba(6,182,212,0.35);
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-align: left;
+    }
+    .hs-box h4 { font-size: 0.52em; color: var(--accent2); margin: 0 0 10px; }
+    .hs-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .hs-step .num {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      width: 18px; height: 18px;
+      min-width: 18px;
+      font-size: 0.35em;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+    }
+    .hs-step p { font-size: 0.38em; color: #e2e8f0; margin: 0; line-height: 1.5; }
+    .hs-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 1.4em;
+      color: var(--accent2);
+    }
+    .hs-middle {
+      flex: 0.6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 6px;
+    }
+    .hs-middle .tag {
+      background: rgba(16,185,129,0.15);
+      border: 1px solid rgba(16,185,129,0.4);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.35em;
+      color: #6ee7b7;
+      text-align: center;
+    }
+
+    /* ── RESULTS SLIDE ── */
+    .results-row { display: flex; gap: 16px; margin-top: 10px; }
+    .metric-card {
+      flex: 1;
+      border-radius: 14px;
+      padding: 18px 12px;
+      text-align: center;
+    }
+    .metric-card.pq {
+      background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.1));
+      border: 1px solid rgba(124,58,237,0.5);
+    }
+    .metric-card.cl {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.35);
+    }
+    .metric-card .big { font-size: 1.6em; font-weight: 800; }
+    .metric-card.pq .big { color: #a78bfa; }
+    .metric-card.cl .big { color: #f87171; }
+    .metric-card .label { font-size: 0.38em; color: #94a3b8; margin-top: 4px; }
+    .metric-card .sublabel { font-size: 0.35em; color: #64748b; margin-top: 2px; }
+    .faster-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 6px;
+    }
+    .faster-badge .pill {
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      border-radius: 50px;
+      padding: 6px 14px;
+      font-size: 0.45em;
+      font-weight: 800;
+      color: #fff;
+      writing-mode: vertical-rl;
+    }
+
+    /* Table */
+    .res-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.42em; }
+    .res-table th {
+      background: rgba(124,58,237,0.25);
+      color: #c4b5fd;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .res-table td { padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #e2e8f0; }
+    .res-table tr:hover td { background: rgba(255,255,255,0.04); }
+    .tag-green { color: var(--green); font-weight: 700; }
+    .tag-red   { color: var(--red); font-weight: 700; }
+    .tag-warn  { color: var(--yellow); font-weight: 700; }
+
+    /* ── SECURITY SLIDE ── */
+    .sec-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.42em; }
+    .sec-table th {
+      background: rgba(6,182,212,0.2);
+      color: var(--accent2);
+      padding: 10px 14px;
+      text-align: left;
+    }
+    .sec-table td { padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #e2e8f0; }
+    .sec-table .center { text-align: center; }
+    .check { color: #10b981; font-size: 1.2em; }
+    .cross { color: #ef4444; font-size: 1.2em; }
+    .warn  { color: #f59e0b; font-size: 1.2em; }
+
+    /* ── CONCLUSION SLIDE ── */
+    .conc-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 16px; }
+    .conc-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 16px 12px;
+      text-align: center;
+    }
+    .conc-card .icon { font-size: 1.8em; margin-bottom: 8px; }
+    .conc-card h4 { font-size: 0.45em; color: #a78bfa; margin: 0 0 6px; }
+    .conc-card p  { font-size: 0.38em; color: #94a3b8; margin: 0; line-height: 1.5; }
+    .github-link {
+      margin-top: 18px;
+      display: inline-block;
+      background: rgba(124,58,237,0.2);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 0.42em;
+      color: #c4b5fd;
+    }
+  </style>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <!-- ══════════ SLIDE 1: TITLE ══════════ -->
+    <section class="slide-title" data-transition="zoom">
+      <div class="badge">CENG3544 · Computer Networks and Security</div>
+      <h1>Post-Quantum Layer-3<br>VPN Tunnel</h1>
+      <div class="subtitle">Implementation &amp; Performance Analysis Using <strong>ML-KEM (Kyber512)</strong></div>
+      <div style="height:1px;background:linear-gradient(90deg,transparent,#7c3aed,transparent);margin:20px 0;"></div>
+      <div class="author-row">
+        <div class="author-card">
+          <div class="name">Mustafa Aydın</div>
+          <div class="mail">mustafaa@posta.mu.edu.tr</div>
+        </div>
+        <div class="author-card">
+          <div class="name">Alperen Polat</div>
+          <div class="mail">alperenpolat@posta.mu.edu.tr</div>
+        </div>
+      </div>
+      <div style="margin-top:24px;font-size:0.38em;color:#475569;">Marmara University · Computer Engineering · June 2026</div>
+    </section>
+
+    <!-- ══════════ SLIDE 2: PROBLEM ══════════ -->
+    <section data-transition="slide">
+      <h2>⚠️ The Problem: Quantum Threat to VPNs</h2>
+      <div class="threat-grid">
+        <div class="threat-card">
+          <div class="icon">⚛️</div>
+          <h4>Shor's Algorithm</h4>
+          <p>A quantum computer can break RSA-2048 and ECC in <strong>polynomial time</strong> — rendering classical VPN key exchange obsolete.</p>
+        </div>
+        <div class="threat-card">
+          <div class="icon">🗄️</div>
+          <h4>Harvest-Now, Decrypt-Later</h4>
+          <p>Adversaries <strong>record encrypted traffic today</strong> and decrypt it once quantum hardware matures — your data is at risk now.</p>
+        </div>
+        <div class="threat-card">
+          <div class="icon">🔑</div>
+          <h4>VPNs are Prime Targets</h4>
+          <p>VPNs continuously transmit sensitive organizational data — making them the <strong>highest-priority target</strong> for harvest attacks.</p>
+        </div>
+        <div class="threat-card">
+          <div class="icon">📅</div>
+          <h4>NIST Responds</h4>
+          <p>In 2024, NIST released <strong>FIPS 203 (ML-KEM)</strong> — the first standardized post-quantum key encapsulation mechanism.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ SLIDE 3: OUR SOLUTION ══════════ -->
+    <section data-transition="slide">
+      <h2>✅ Our Solution: PQ-VPN Tunnel</h2>
+      <div class="solution-grid">
+        <div class="sol-card">
+          <div class="icon">🔐</div>
+          <h4>Kyber512 Key Encapsulation</h4>
+          <p>ML-KEM (NIST FIPS 203) — lattice-based, secure against both classical and quantum adversaries. Replaces RSA in the handshake.</p>
+        </div>
+        <div class="sol-card">
+          <div class="icon">🔒</div>
+          <h4>AES-256-GCM Encryption</h4>
+          <p>All tunnel data is encrypted with authenticated AEAD encryption. 12-byte nonce + 16-byte tag = 28-byte constant overhead.</p>
+        </div>
+        <div class="sol-card">
+          <div class="icon">🌐</div>
+          <h4>Real Layer-3 Tunnel</h4>
+          <p>Linux TUN virtual interfaces over UDP. Two physical machines on a university Wi-Fi — real-world deployment, not a simulation.</p>
+        </div>
+        <div class="sol-card">
+          <div class="icon">📊</div>
+          <h4>Quantified Performance</h4>
+          <p>Full benchmark suite comparing Kyber512 vs RSA-2048: handshake time, CPU load, packet overhead, and throughput.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ SLIDE 4: HANDSHAKE PROTOCOL ══════════ -->
+    <section data-transition="convex">
+      <h2>⚙️ How It Works — Handshake Protocol</h2>
+      <div class="hs-flow">
+        <div class="hs-box">
+          <h4>🖥️ SERVER (172.21.195.229)</h4>
+          <div class="hs-step"><div class="num">1</div><p><strong>Kyber512.keygen()</strong><br>Generate public key <em>pk</em> and secret key <em>sk</em></p></div>
+          <div class="hs-step"><div class="num">2</div><p>Send <em>pk</em> to client over <strong>TCP :4444</strong></p></div>
+          <div class="hs-step"><div class="num">4</div><p><strong>Kyber512.decaps(sk, ct)</strong><br>Recover the shared secret</p></div>
+          <div class="hs-step"><div class="num">6</div><p>Init <strong>AESGCM(shared_secret)</strong><br>Open TUN → <em>10.0.0.1/24</em></p></div>
+        </div>
+        <div class="hs-middle">
+          <div class="tag">← pk (800 B)</div>
+          <div class="tag">ct (768 B) →</div>
+          <div style="height:1px;width:60px;background:rgba(6,182,212,0.3);"></div>
+          <div class="tag">UDP :5555<br>Encrypted Tunnel</div>
+        </div>
+        <div class="hs-box">
+          <h4>💻 CLIENT (172.21.196.43)</h4>
+          <div class="hs-step"><div class="num">3</div><p><strong>Kyber512.encaps(pk)</strong><br>Generate <em>shared_secret</em> + ciphertext <em>ct</em></p></div>
+          <div class="hs-step"><div class="num">5</div><p>Send <em>ct</em> back to server over <strong>TCP :4444</strong></p></div>
+          <div class="hs-step"><div class="num">6</div><p>Init <strong>AESGCM(shared_secret)</strong><br>Open TUN → <em>10.0.0.2/24</em></p></div>
+          <div class="hs-step" style="opacity:0.4;"><div class="num">✓</div><p>Encrypted tunnel established</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ SLIDE 5: RESULTS ══════════ -->
+    <section data-transition="slide">
+      <h2>📈 Benchmark Results</h2>
+      <div class="results-row">
+        <div class="metric-card pq">
+          <div class="big">3.90 ms</div>
+          <div class="label">Kyber512 Full Handshake</div>
+          <div class="sublabel">Live deployment (2 machines)</div>
+        </div>
+        <div class="faster-badge">
+          <div class="pill">16.8× Faster</div>
+        </div>
+        <div class="metric-card cl">
+          <div class="big">65.53 ms</div>
+          <div class="label">RSA-2048 Full Handshake</div>
+          <div class="sublabel">Same live deployment</div>
+        </div>
+      </div>
+      <table class="res-table">
+        <thead>
+          <tr><th>Operation</th><th>Avg (ms)</th><th>Min (ms)</th><th>Max (ms)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Kyber512 keygen</td><td class="tag-green">1.30</td><td>1.07</td><td>4.07</td></tr>
+          <tr><td><strong>Kyber512 full exchange</strong></td><td class="tag-green"><strong>5.18</strong></td><td>4.82</td><td>6.62</td></tr>
+          <tr><td>RSA-2048 keygen</td><td class="tag-red">35.02</td><td>8.54</td><td>102.11</td></tr>
+          <tr><td><strong>RSA-2048 full exchange</strong></td><td class="tag-red"><strong>36.19</strong></td><td>10.94</td><td>80.58</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.38em;color:#64748b;margin-top:10px;">
+        📦 Packet overhead: constant <strong>28 bytes</strong> (12B nonce + 16B GCM tag) — identical for both configurations.<br>
+        🖥️ CPU during data transfer: &lt;5% for both — no measurable runtime penalty.
+      </p>
+    </section>
+
+    <!-- ══════════ SLIDE 6: SECURITY ══════════ -->
+    <section data-transition="convex">
+      <h2>🛡️ Security Comparison</h2>
+      <table class="sec-table">
+        <thead>
+          <tr>
+            <th>Attack Scenario</th>
+            <th class="center">RSA-2048 VPN</th>
+            <th class="center">PQ-VPN (Kyber512)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Classical brute force</td>
+            <td class="center"><span class="check">✅</span> Secure</td>
+            <td class="center"><span class="check">✅</span> Secure</td>
+          </tr>
+          <tr>
+            <td>Shor's algorithm (quantum computer)</td>
+            <td class="center"><span class="cross">❌</span> Broken</td>
+            <td class="center"><span class="check">✅</span> Secure</td>
+          </tr>
+          <tr>
+            <td>Grover's algorithm (quantum speedup)</td>
+            <td class="center"><span class="warn">⚠️</span> Weakened</td>
+            <td class="center"><span class="check">✅</span> Secure</td>
+          </tr>
+          <tr>
+            <td>Man-in-the-Middle attack</td>
+            <td class="center"><span class="check">✅</span> Secure</td>
+            <td class="center"><span class="check">✅</span> Secure</td>
+          </tr>
+          <tr>
+            <td><strong>Harvest-now, decrypt-later</strong></td>
+            <td class="center"><span class="cross">❌</span> <strong>Broken</strong></td>
+            <td class="center"><span class="check">✅</span> <strong>Secure</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.4em;color:#94a3b8;margin-top:14px;text-align:left;">
+        The critical distinction: both systems encrypt <em>data</em> with AES-256-GCM —
+        but only our system protects the <strong>key establishment</strong> from quantum adversaries.
+        MLWE hardness provides security equivalent to AES-128 against both classical and quantum attacks.
+      </p>
+    </section>
+
+    <!-- ══════════ SLIDE 7: CONCLUSION ══════════ -->
+    <section data-transition="zoom">
+      <h2>🏁 Conclusion</h2>
+      <div class="conc-grid">
+        <div class="conc-card">
+          <div class="icon">⚡</div>
+          <h4>Zero Performance Cost</h4>
+          <p>Kyber512 handshake is <strong>16.8× faster</strong> than RSA-2048. CPU during data transfer is identical (&lt;5%).</p>
+        </div>
+        <div class="conc-card">
+          <div class="icon">🔐</div>
+          <h4>Quantum-Resistant</h4>
+          <p>Protected against Shor's algorithm and harvest-now-decrypt-later attacks. NIST FIPS 203 compliant.</p>
+        </div>
+        <div class="conc-card">
+          <div class="icon">🌍</div>
+          <h4>Real Deployment</h4>
+          <p>Tested on two physical machines over university Wi-Fi. Not a simulation — real encrypted tunnel traffic measured.</p>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-radius:10px;">
+        <p style="font-size:0.42em;color:#6ee7b7;margin:0;text-align:center;">
+          💡 <strong>Post-quantum VPN migration presents a clear engineering case:</strong><br>
+          Better security against quantum threats, no measurable runtime penalty, and faster handshake.
+        </p>
+      </div>
+      <a class="github-link" href="https://github.com/AlperenPolat1/PQC-VPN-Tunnel" target="_blank">
+        🔗 github.com/AlperenPolat1/PQC-VPN-Tunnel
+      </a>
+    </section>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    transition: 'slide',
+    transitionSpeed: 'default',
+    controls: true,
+    progress: true,
+    slideNumber: true,
+    keyboard: true,
+    overview: true,
+    center: true,
+    touch: true,
+    width: 1100,
+    height: 680,
+    margin: 0.04,
+    plugins: []
+  });
+</script>
+</body>
+</html>
